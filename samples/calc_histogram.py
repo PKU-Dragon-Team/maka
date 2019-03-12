@@ -1,23 +1,15 @@
-import os
 import sys
-
-from os.path import join, dirname
-from dotenv import load_dotenv
 from optparse import IndentedHelpFormatter, OptionGroup, OptionParser
+from os.path import dirname, join
 
 import matplotlib.pyplot as plt
+from dotenv import load_dotenv
+
+import maka.inquirer as inquirer
 
 dotenv_path = join(dirname(__file__), '.env')
 load_dotenv(dotenv_path)
 
-try:
-    import maka.inquirer as inquirer
-except ImportError:
-    import inspect
-    CURRENT_DIR = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-    PARENT_DIR = os.path.dirname(CURRENT_DIR)
-    os.sys.path.insert(0, PARENT_DIR)
-    import inquirer
 
 def main():
     """
@@ -28,11 +20,13 @@ A command-line tool to test similarity to Microsoft's Academic Knowledge."""
 
     fmt = IndentedHelpFormatter(max_help_position=50, width=100)
     parser = OptionParser(usage=usage, formatter=fmt)
-    group = OptionGroup(parser,
-                        'Query arguments',
-                        'These options define search query arguments and parameters.')
-    group.add_option('-e', '--expresion', metavar='EXPR', default=None, help='Expression')
-    group.add_option('-a', '--attributes', metavar='ATTR', default='Id', help='Expression')
+    group = OptionGroup(
+        parser, 'Query arguments',
+        'These options define search query arguments and parameters.')
+    group.add_option(
+        '-e', '--expresion', metavar='EXPR', default=None, help='Expression')
+    group.add_option(
+        '-a', '--attributes', metavar='ATTR', default='Id', help='Expression')
     parser.add_option_group(group)
     options, _ = parser.parse_args()
 
@@ -52,7 +46,7 @@ A command-line tool to test similarity to Microsoft's Academic Knowledge."""
         histograms = query.post()
         for histogram in histograms:
             data = histogram['data']
-            rng = range(1, len(data)+1)
+            rng = list(range(1, len(data) + 1))
             labels = [val['value'] for val in data]
             plt.bar(rng, [val['count'] for val in data])
             plt.xticks(rng, labels, rotation='vertical')
@@ -63,6 +57,7 @@ A command-line tool to test similarity to Microsoft's Academic Knowledge."""
             plt.ylabel('count')
             plt.title('Histogram for {}'.format(histogram['attribute']))
             plt.show()
+
 
 if __name__ == '__main__':
     sys.exit(main())

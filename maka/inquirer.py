@@ -2,25 +2,25 @@
 Collection of classes used to make requests to the
 Microsoft Academic Knowledge site
 """
-from enum import Enum
-
 import os
 import sys
+from enum import Enum
 
 import requests
 
-import classes
+from . import classes
 
 # Support unicode in both Python 2 and 3. In Python 3, unicode is str.
 if sys.version_info[0] == 3:
-    unicode = str # pylint: disable-msg=W0622
-    encode = lambda s: unicode(s) # pylint: disable-msg=C0103
+    encode = str
 else:
+
     def encode(text):
-        if isinstance(text, basestring):
-            return text.encode('utf-8') # pylint: disable-msg=C0103
+        if isinstance(text, str):
+            return text.encode('utf-8')  # pylint: disable-msg=C0103
         else:
             return str(text)
+
 
 class AcademicConf(object):
     """
@@ -31,17 +31,14 @@ class AcademicConf(object):
     LOG_LEVEL = int(os.getenv('LOG_LEVEL', 1))
     MAX_PAGE_RESULTS = 50
     BASE_URL = 'https://westus.api.cognitive.microsoft.com/academic/v1.0'
-    USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64; rv:27.0) Gecko/20100101 Firefox/27.0'
+    USER_AGENT = ('Mozilla/5.0 (X11; Linux x86_64; rv:27.0) '
+                  'Gecko/20100101 Firefox/27.0')
+
 
 class AcademicUtils(object):
     """A wrapper for various utensils that come in handy."""
 
-    LOG_LEVELS = {
-        'error': 1,
-        'warn':  2,
-        'info':  3,
-        'debug': 4
-    }
+    LOG_LEVELS = {'error': 1, 'warn': 2, 'info': 3, 'debug': 4}
 
     @staticmethod
     def ensure_int(arg, msg=None):
@@ -60,14 +57,15 @@ class AcademicUtils(object):
         Method to log a message.
         Currently it logs to the system's error fd.
         """
-        if level not in AcademicUtils.LOG_LEVELS.keys():
+        if level not in list(AcademicUtils.LOG_LEVELS.keys()):
             return
         if AcademicUtils.LOG_LEVELS[level] > AcademicConf.LOG_LEVEL:
             return
         sys.stderr.write('[%5s]  %s' % (level.upper(), msg + '\n'))
         sys.stderr.flush()
 
-class AcademicQueryType(Enum): # pylint: disable=too-few-public-methods
+
+class AcademicQueryType(Enum):  # pylint: disable=too-few-public-methods
     """
     Enumeration for the types of queries existing in MAKA
     """
@@ -77,10 +75,13 @@ class AcademicQueryType(Enum): # pylint: disable=too-few-public-methods
     SIMILARITY = 3
     GRAPH_TRAVERSAL = 4
 
+
 class AcademicQuery(object):
     """
-    The base class for any kind of results query we send to Microsoft's Academic Knowledge API.
+    The base class for any kind of results query we send to Microsoft's \
+    Academic Knowledge API.
     """
+
     def __init__(self):
         self.url = None
         self.body = None
@@ -107,7 +108,7 @@ class AcademicQuery(object):
         if not self.attrs:
             self.attrs[key] = [default_value, label, 0]
             return
-        idx = max([item[2] for item in self.attrs.values()]) + 1
+        idx = max([item[2] for item in list(self.attrs.values())]) + 1
         self.attrs[key] = [default_value, label, idx]
 
     def __getitem__(self, key):
@@ -166,7 +167,8 @@ class InterpretQuery(AcademicQuery):
     def set_complete(self, value):
         """
         Sets the autocomplete option.
-        1 means that auto-completion suggestions are generated based on the grammar and graph data.
+        1 means that auto-completion suggestions are generated based on the \
+        grammar and graph data.
         """
         msg = 'complete must be numeric'
         self.complete = AcademicUtils.ensure_int(value, msg)
@@ -223,6 +225,7 @@ class InterpretQuery(AcademicQuery):
         }
 
         return args
+
 
 class EvaluateQuery(AcademicQuery):
     """
@@ -291,6 +294,7 @@ class EvaluateQuery(AcademicQuery):
 
         return args
 
+
 class SimilarityQuery(AcademicQuery):
     """
     This class represents a query to the Similarity endpoint
@@ -322,14 +326,13 @@ class SimilarityQuery(AcademicQuery):
         Creates and returns the body for the POST request
         """
         if self.s1 is None or self.s2 is None:
-            raise classes.RequiredArgumentError('Similarity needs two strings to compare')
+            raise classes.RequiredArgumentError(
+                'Similarity needs two strings to compare')
 
-        args = {
-            's1': self.s1,
-            's2': self.s2
-        }
+        args = {'s1': self.s1, 's2': self.s2}
 
         return args
+
 
 class CalcHistogramQuery(EvaluateQuery):
     """
@@ -342,6 +345,7 @@ class CalcHistogramQuery(EvaluateQuery):
 
     def get_url(self):
         return self.CALC_HISTOGRAM_URL
+
 
 class AcademicQuerier(object):
     """
@@ -357,7 +361,8 @@ class AcademicQuerier(object):
         self.query_type = query_type
         # step 1: parameters sanity check
         if not isinstance(query_type, AcademicQueryType):
-            raise classes.QueryTypeError('Query type must be of type AcademicQueryType.')
+            raise classes.QueryTypeError(
+                'Query type must be of type AcademicQueryType.')
         if arguments is None:
             arguments = {}
 
@@ -366,15 +371,18 @@ class AcademicQuerier(object):
         if query_type == AcademicQueryType.INTERPRET:
             self.query = InterpretQuery()
             self.query.set_query(arguments.get('query', self.query.query))
-            self.query.set_complete(arguments.get('complete', self.query.complete))
+            self.query.set_complete(
+                arguments.get('complete', self.query.complete))
             self.query.set_count(arguments.get('count', self.query.count))
             self.query.set_offset(arguments.get('offset', self.query.offset))
-            self.query.set_timeout(arguments.get('timeout', self.query.timeout))
+            self.query.set_timeout(
+                arguments.get('timeout', self.query.timeout))
             self.query.set_model(arguments.get('model', self.query.model))
         elif query_type == AcademicQueryType.EVALUATE:
             self.query = EvaluateQuery()
             self.query.set_expr(arguments.get('expr', self.query.expr))
-            self.query.set_attributes(arguments.get('attributes', self.query.attributes))
+            self.query.set_attributes(
+                arguments.get('attributes', self.query.attributes))
             self.query.set_count(arguments.get('count', self.query.count))
             self.query.set_offset(arguments.get('offset', self.query.offset))
             self.query.set_model(arguments.get('model', self.query.model))
@@ -385,7 +393,8 @@ class AcademicQuerier(object):
         elif query_type == AcademicQueryType.HISTOGRAM:
             self.query = CalcHistogramQuery()
             self.query.set_expr(arguments.get('expr', self.query.expr))
-            self.query.set_attributes(arguments.get('attributes', self.query.attributes))
+            self.query.set_attributes(
+                arguments.get('attributes', self.query.attributes))
             self.query.set_count(arguments.get('count', self.query.count))
             self.query.set_offset(arguments.get('offset', self.query.offset))
             self.query.set_model(arguments.get('model', self.query.model))
@@ -394,7 +403,7 @@ class AcademicQuerier(object):
 
     def post(self):
         if os.getenv('MAKA_SUBSCRIPTION_KEY', None) is None:
-             raise KeyError('MAKA_SUBSCRIPTION_KEY')
+            raise KeyError('MAKA_SUBSCRIPTION_KEY')
         headers = {
             'user-agent': AcademicConf.USER_AGENT,
             'Ocp-Apim-Subscription-Key': os.environ['MAKA_SUBSCRIPTION_KEY']
@@ -404,20 +413,28 @@ class AcademicQuerier(object):
         AcademicUtils.log('debug', 'Sending {}/{}'.format(url, data))
         the_request = requests.post(url, data=data, headers=headers)
         AcademicUtils.log('debug', 'Received {}'.format(the_request.text))
-        if  the_request.status_code < 300:
+        if the_request.status_code < 300:
             if self.query_type == AcademicQueryType.INTERPRET:
                 jobject = the_request.json()
-                return [classes.AcademicInterpretationParser.parse(interpretation)
-                        for interpretation in jobject['interpretations']]
+                return [
+                    classes.AcademicInterpretationParser.parse(interpretation)
+                    for interpretation in jobject['interpretations']
+                ]
             elif self.query_type == AcademicQueryType.EVALUATE:
                 jobject = the_request.json()
-                return [classes.AcademicPaperParser.parse(entity) for entity in jobject['entities']]
+                return [
+                    classes.AcademicPaperParser.parse(entity)
+                    for entity in jobject['entities']
+                ]
             elif self.query_type == AcademicQueryType.SIMILARITY:
                 return float(the_request.text)
             elif self.query_type == AcademicQueryType.HISTOGRAM:
                 jobject = the_request.json()
-                return [classes.AcademicHistogramParser.parse(entity)
-                        for entity in jobject['histograms']]
+                return [
+                    classes.AcademicHistogramParser.parse(entity)
+                    for entity in jobject['histograms']
+                ]
         else:
-            raise classes.Error('An error ocurred while processing the request. Code: {}'
-                                .format(the_request.status_code))
+            raise classes.Error(
+                'An error ocurred while processing the request. Code: {}'.
+                format(the_request.status_code))

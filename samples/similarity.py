@@ -1,21 +1,14 @@
-import os
 import sys
-
-from os.path import join, dirname
-from dotenv import load_dotenv
 from optparse import IndentedHelpFormatter, OptionGroup, OptionParser
+from os.path import dirname, join
+
+from dotenv import load_dotenv
+
+import maka.inquirer as inquirer
 
 dotenv_path = join(dirname(__file__), '.env')
 load_dotenv(dotenv_path)
 
-try:
-    import maka.inquirer as inquirer
-except ImportError:
-    import inspect
-    CURRENT_DIR = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-    PARENT_DIR = os.path.dirname(CURRENT_DIR)
-    os.sys.path.insert(0, PARENT_DIR)
-    import inquirer
 
 def main():
     """
@@ -26,11 +19,13 @@ A command-line tool to test similarity to Microsoft's Academic Knowledge."""
 
     fmt = IndentedHelpFormatter(max_help_position=50, width=100)
     parser = OptionParser(usage=usage, formatter=fmt)
-    group = OptionGroup(parser,
-                        'Query arguments',
-                        'These options define search query arguments and parameters.')
-    group.add_option('--s1', metavar='STRING1', default=None, help='First string')
-    group.add_option('--s2', metavar='STRING2', default=None, help='Second string')
+    group = OptionGroup(
+        parser, 'Query arguments',
+        'These options define search query arguments and parameters.')
+    group.add_option(
+        '--s1', metavar='STRING1', default=None, help='First string')
+    group.add_option(
+        '--s2', metavar='STRING2', default=None, help='Second string')
     parser.add_option_group(group)
     options, _ = parser.parse_args()
 
@@ -48,8 +43,9 @@ A command-line tool to test similarity to Microsoft's Academic Knowledge."""
     })
     if query is not None:
         similarity = query.post()
-        print('Similarity between "{}" and "{}" is {}'.
-              format(options.s1, options.s2, similarity))
+        print(('Similarity between "{}" and "{}" is {}'.format(
+            options.s1, options.s2, similarity)))
+
 
 if __name__ == '__main__':
     sys.exit(main())
